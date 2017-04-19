@@ -1,4 +1,6 @@
+require 'pry'
 require 'json'
+require 'atlassian/jwt'
 require 'net/https'
 require 'cgi/cookie'
 
@@ -23,10 +25,14 @@ module JIRA
     end
 
     def make_request(http_method, path, body='', headers={})
+      puts options
+      add_jwt_header(headers, http_method, path) if options[:use_jwt]
+
       request = Net::HTTP.const_get(http_method.to_s.capitalize).new(path, headers)
       request.body = body unless body.nil?
       add_cookies(request) if options[:use_cookies]
       request.basic_auth(@options[:username], @options[:password])
+
       response = basic_auth_http_conn.request(request)
       store_cookies(response) if options[:use_cookies]
       response
@@ -54,6 +60,19 @@ module JIRA
     end
 
     private
+
+    def add_jwt_header(headers, http_method, path)
+      url = @options[:base_url] + path
+      claim = Atlassian::Jwt.build_claims \
+        @options[:issuer],
+        url,
+        http_method
+
+      jwt = JWT.encode claim, @options[:shared_secret]
+
+      headers['Authentication'] = "JWT #{jwt}"
+    end
+
 
     def store_cookies(response)
       cookies = response.get_fields('set-cookie')

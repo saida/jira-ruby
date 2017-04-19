@@ -18,6 +18,15 @@ describe JIRA::Client do
     JIRA::Client.new({ :username => 'foo', :password => 'bar', :auth_type => :cookie })
   end
 
+  let(:jwt_client) do
+    JIRA::Client.new({
+      :issuer => 'foo',
+      :base_url => 'https://host.tld',
+      :shared_secret => 'bar',
+      :auth_type => :jwt
+    })
+  end
+
   let(:clients) { [oauth_client, basic_client, cookie_client] }
 
   let(:response) do
@@ -63,12 +72,14 @@ describe JIRA::Client do
       expect(oauth_client.request_client.class).to eq(JIRA::OauthClient)
       expect(basic_client.request_client.class).to eq(JIRA::HttpClient)
       expect(cookie_client.request_client.class).to eq(JIRA::HttpClient)
+      expect(jwt_client.request_client.class).to eq(JIRA::HttpClient)
     end
 
     specify "which have a corresponding auth type option" do
       expect(oauth_client.options[:auth_type]).to eq(:oauth)
       expect(basic_client.options[:auth_type]).to eq(:basic)
       expect(cookie_client.options[:auth_type]).to eq(:cookie)
+      expect(jwt_client.options[:auth_type]).to eq(:jwt)
     end
 
     describe "like oauth" do
@@ -121,27 +132,32 @@ describe JIRA::Client do
       expect(oauth_client).to receive(:request).exactly(5).times.and_return(response)
       expect(basic_client).to receive(:request).exactly(5).times.and_return(response)
       expect(cookie_client).to receive(:request).exactly(5).times.and_return(response)
+      expect(jwt_client).to receive(:request).exactly(5).times.and_return(response)
 
       # response for merging headers for http methods with no body
       expect(oauth_client).to receive(:merge_default_headers).exactly(3).times.with({})
       expect(basic_client).to receive(:merge_default_headers).exactly(3).times.with({})
       expect(cookie_client).to receive(:merge_default_headers).exactly(3).times.with({})
+      expect(jwt_client).to receive(:merge_default_headers).exactly(3).times.with({})
 
       # response for merging headers for http methods with body
       expect(oauth_client).to receive(:merge_default_headers).exactly(2).times.with(content_type_header)
       expect(basic_client).to receive(:merge_default_headers).exactly(2).times.with(content_type_header)
       expect(cookie_client).to receive(:merge_default_headers).exactly(2).times.with(content_type_header)
+      expect(jwt_client).to receive(:merge_default_headers).exactly(2).times.with(content_type_header)
 
       [:delete, :get, :head].each do |method|
         oauth_client.send(method, '/path', {})
         basic_client.send(method, '/path', {})
         cookie_client.send(method, '/path', {})
+        jwt_client.send(method, '/path', {})
       end
 
       [:post, :put].each do |method|
         oauth_client.send(method, '/path', '', content_type_header)
         basic_client.send(method, '/path', '', content_type_header)
         cookie_client.send(method, '/path', '', content_type_header)
+        jwt_client.send(method, '/path', '', content_type_header)
       end
     end
 
@@ -153,6 +169,7 @@ describe JIRA::Client do
         oauth_client.send(method, '/path', {})
         basic_client.send(method, '/path', {})
         cookie_client.send(method, '/path', {})
+        jwt_client.send(method, '/path', {})
       end
 
       [:post, :put].each do |method|
@@ -162,6 +179,7 @@ describe JIRA::Client do
         oauth_client.send(method, '/path', '', {})
         basic_client.send(method, '/path', '', {})
         cookie_client.send(method, '/path', '', {})
+        jwt_client.send(method, '/path', '', {})
       end
     end
 
@@ -203,10 +221,12 @@ describe JIRA::Client do
       expect(JIRA::Resource::Project).to receive(:all).with(oauth_client).and_return([])
       expect(JIRA::Resource::Project).to receive(:all).with(basic_client).and_return([])
       expect(JIRA::Resource::Project).to receive(:all).with(cookie_client).and_return([])
+      expect(JIRA::Resource::Project).to receive(:all).with(jwt_client).and_return([])
 
       expect(oauth_client.Project.all).to eq([])
       expect(basic_client.Project.all).to eq([])
       expect(cookie_client.Project.all).to eq([])
+      expect(jwt_client.Project.all).to eq([])
     end
 
     it "finds a single project" do
@@ -214,10 +234,12 @@ describe JIRA::Client do
       expect(JIRA::Resource::Project).to receive(:find).with(oauth_client, '123').and_return(find_result)
       expect(JIRA::Resource::Project).to receive(:find).with(basic_client, '123').and_return(find_result)
       expect(JIRA::Resource::Project).to receive(:find).with(cookie_client, '123').and_return(find_result)
+      expect(JIRA::Resource::Project).to receive(:find).with(jwt_client, '123').and_return(find_result)
 
       expect(oauth_client.Project.find('123')).to eq(find_result)
       expect(basic_client.Project.find('123')).to eq(find_result)
       expect(cookie_client.Project.find('123')).to eq(find_result)
+      expect(jwt_client.Project.all).to eq([])
     end
   end
 end
