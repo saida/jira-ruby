@@ -1,4 +1,3 @@
-require 'pry'
 require 'json'
 require 'atlassian/jwt'
 require 'net/https'
