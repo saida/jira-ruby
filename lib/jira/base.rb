@@ -428,8 +428,9 @@ module JIRA
         end
       end
       if @attrs['self']
-        the_url = @attrs['self'].sub(@client.options[:site],'')
-        the_url = "/#{the_url}" if (the_url =~ /^\//).nil?
+        the_url = @attrs['self']
+        the_url = the_url.sub(@client.options[:site], '') if @client.options[:site]
+        the_url = "/#{the_url}" if (the_url =~ /^(\/|http)/).nil?
         the_url
       elsif key_value
         self.class.singular_path(client, key_value.to_s, prefix)
@@ -447,7 +448,7 @@ module JIRA
     # [07/Jun/2015:15:17:18 +0400] "PUT /jira/rest/api/2/issue/10111 HTTP/1.1" 204 -
     def patched_url
       result = url
-      return result if result.start_with?('/')
+      return result if result.start_with?('/', 'http')
       "/#{result}"
     end
 

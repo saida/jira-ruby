@@ -62,6 +62,8 @@ module JIRA
     # Sets the access token from a preexisting token and secret.
     def set_access_token(token, secret)
       @access_token = OAuth::AccessToken.new(@consumer, token, secret)
+      @authenticated = true
+      @access_token
     end
 
     # Returns the current access token. Raises an
@@ -72,13 +74,30 @@ module JIRA
     end
 
     def make_request(http_method, path, body='', headers={})
+      # When using oauth_2legged we need to add an empty oauth_token parameter to every request.
+      if @options[:auth_type] == :oauth_2legged
+        oauth_params_str = "oauth_token="
+        uri = URI.parse(path)
+        if uri.query.to_s == ""
+          uri.query = oauth_params_str
+        else
+          uri.query = uri.query + "&" + oauth_params_str
+        end
+        path = uri.to_s
+      end
+
       case http_method
       when :delete, :get, :head
         response = access_token.send http_method, path, headers
       when :post, :put
         response = access_token.send http_method, path, body, headers
       end
+      @authenticated = true
       response
+    end
+
+    def authenticated?
+      @authenticated
     end
   end
 end
